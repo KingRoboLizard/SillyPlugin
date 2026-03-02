@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SillyPlugin {
@@ -25,8 +26,8 @@ public class SillyPlugin {
     public static Permissions BUMPSCOCITY = new Permissions("BUMPSCOCITY", 0, 1000, 0, 0, 0, 0, 0);
     public static Permissions FAKE_BLOCKS = new Permissions("FAKE_BLOCKS", 0, 0, 0, 0, 0);
 //    public static Permissions COLLIDERS = new Permissions("COLLIDERS", 0, 0, 0, 0, 1);
-    public static Map<UUID, Map<BlockPos, BlockState>> FakeBlocks = new HashMap<>();
-    public static Map<BlockPos, Pair<BlockState, BlockEntity>> RealBlocks = new HashMap<>();
+    public static ConcurrentHashMap<UUID, ConcurrentHashMap<BlockPos, BlockState>> FakeBlocks = new ConcurrentHashMap<>();
+    public static ConcurrentHashMap<BlockPos, Pair<BlockState, BlockEntity>> RealBlocks = new ConcurrentHashMap<>();
 
     public static boolean shouldHide(SillyEnums.GUI_ELEMENT el) {
         if (hostInstance == null) return false;
@@ -34,16 +35,34 @@ public class SillyPlugin {
         return hostInstance.disabledElements.contains(el);
     }
 
-    public static boolean fakeExistsAt(BlockPos pos) {
-        return flattenedFakes().containsKey(pos);
+    public static boolean fakeExistsAt(BlockPos pos, boolean rebuild) {
+        return flattenedFakes(rebuild).containsKey(pos);
     }
 
-    public static Map<BlockPos, BlockState> flattenedFakes() {
-        HashMap<BlockPos, BlockState> ret = new HashMap<>();
-        for (Map<BlockPos, BlockState> value : FakeBlocks.values()) {
-            ret.putAll(value);
+    public static boolean fakeExistsAt(BlockPos pos) {
+        return fakeExistsAt(pos, true);
+    }
+
+    public static ConcurrentHashMap<BlockPos, BlockState> _cachedFlattened = new ConcurrentHashMap<>();
+    public static boolean _cacheDirty = true;
+    public static ConcurrentHashMap<BlockPos, BlockState> flattenedFakes() {
+        return flattenedFakes(true);
+    }
+    public static ConcurrentHashMap<BlockPos, BlockState> flattenedFakes(boolean rebuild) {
+        if (_cacheDirty && rebuild) {
+            ConcurrentHashMap<BlockPos, BlockState> ret = new ConcurrentHashMap<>();
+            for (ConcurrentHashMap<BlockPos, BlockState> value : FakeBlocks.values()) {
+                ret.putAll(value);
+            }
+            _cachedFlattened = ret;
+            _cacheDirty = false;
+            return ret;
         }
-        return ret;
+        return _cachedFlattened;
+    }
+
+    public static void markFakesDirty() {
+        _cacheDirty = true;
     }
 
     public static boolean shouldNoclip(Entity entity) {

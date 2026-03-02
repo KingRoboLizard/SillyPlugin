@@ -30,9 +30,7 @@ public class ClientPacketListenerMixin {
     public void handleBlockUpdateMixin(ClientboundBlockUpdatePacket clientboundBlockUpdatePacket, CallbackInfo ci) {
         if (level == null || !level.isClientSide) return;
         BlockPos updated = clientboundBlockUpdatePacket.getPos();
-        var fakes = SillyPlugin.flattenedFakes();
-        BlockState fake = fakes.get(updated);
-        if (fake != null) {
+        if (SillyPlugin.fakeExistsAt(updated, false)) {
             BlockState state = clientboundBlockUpdatePacket.getBlockState();
             BlockEntity entity = null;
             if (state.hasBlockEntity()) {

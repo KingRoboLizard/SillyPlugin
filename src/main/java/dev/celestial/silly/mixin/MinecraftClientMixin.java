@@ -18,5 +18,7 @@ public class MinecraftClientMixin {
     public void clearLevelMixin(Screen screen, CallbackInfo ci) {
         SillyPlugin.FakeBlocks.clear();
         SillyPlugin.RealBlocks.clear();
+        SillyPlugin.markFakesDirty();
+        SillyPlugin._cachedFlattened.clear();
     }
 }

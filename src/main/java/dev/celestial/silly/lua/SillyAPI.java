@@ -41,6 +41,7 @@ import org.luaj.vm2.*;
 
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
@@ -57,7 +58,8 @@ public class SillyAPI {
     public boolean fakeBlocksDisabled = false;
 
     public SillyAPI(Avatar avatar) {
-        SillyPlugin.FakeBlocks.put(avatar.owner, new Hashtable<>());
+        SillyPlugin.FakeBlocks.put(avatar.owner, new ConcurrentHashMap<>());
+        SillyPlugin.markFakesDirty();
         this.avatar = avatar;
         this.minecraft = Minecraft.getInstance();
         local = avatar.isHost;
@@ -71,12 +73,14 @@ public class SillyAPI {
     public void cleanup() {
         SillyPlugin.LOGGER.info("SillyAPI.cleanup() for {}", avatar.owner);
         ClientLevel level = minecraft.level;
-        var fakes = SillyPlugin.FakeBlocks.get(avatar.owner);
-        SillyPlugin.FakeBlocks.remove(avatar.owner);
+        var fakes = SillyPlugin.FakeBlocks.remove(avatar.owner);
+        SillyPlugin.markFakesDirty();
+        SillyPlugin.flattenedFakes(true); // rebuild caches
         if (fakes != null)
             fakes.keySet().forEach(x -> {
-                if (!SillyPlugin.fakeExistsAt(x) && level != null) {
-                    var real = SillyPlugin.RealBlocks.get(x);
+                if (!SillyPlugin.fakeExistsAt(x, false) && level != null) {
+                    SillyPlugin._cachedFlattened.remove(x);
+                    var real = SillyPlugin.RealBlocks.remove(x);
                     level.setBlock(x, real.getLeft(), 2);
                     if (real.getRight() != null)
                         level.setBlockEntity(real.getRight());
@@ -228,8 +232,11 @@ public class SillyAPI {
                     realEntity = null;
                 }
                 SillyPlugin.RealBlocks.computeIfAbsent(pos, k -> new ImmutablePair<>(realBlock, realEntity));
-                SillyPlugin.FakeBlocks.computeIfAbsent(avatar.owner, k -> new HashMap<>())
+                SillyPlugin.FakeBlocks.computeIfAbsent(avatar.owner, k -> new ConcurrentHashMap<>())
                         .put(pos, state);
+                SillyPlugin._cachedFlattened.put(pos, state);
+                SillyPlugin.markFakesDirty();
+
                 if (!(SillyPlugin.hostInstance != null && SillyPlugin.hostInstance.fakeBlocksDisabled))
                     lvl.setBlock(pos, state, 2);
             }
@@ -267,7 +274,8 @@ public class SillyAPI {
             } else if (block == null) {
                 BlockPos bp = posFV3.asBlockPos();
                 // its silly but it works
-                SillyPlugin.FakeBlocks.getOrDefault(avatar.owner, new HashMap<>()).remove(bp);
+                SillyPlugin.FakeBlocks.getOrDefault(avatar.owner, new ConcurrentHashMap<>()).remove(bp);
+                SillyPlugin.markFakesDirty();
                 Pair<BlockState, BlockEntity> real = SillyPlugin.RealBlocks.get(bp);
                 ClientLevel lvl = minecraft.level;
                 if (real != null && !SillyPlugin.fakeExistsAt(bp) && lvl != null) {
@@ -376,7 +384,7 @@ public class SillyAPI {
         BlockPos pos = LuaUtils.parseVec3("getFakeBlockInfo", x, y, z).asBlockPos();
         LuaTable ret = LuaValue.tableOf();
         int i = 1;
-        for (Map.Entry<UUID, Map<BlockPos, BlockState>> entry : SillyPlugin.FakeBlocks.entrySet()) {
+        for (Map.Entry<UUID, ConcurrentHashMap<BlockPos, BlockState>> entry : SillyPlugin.FakeBlocks.entrySet()) {
             UUID uuid = entry.getKey();
             Map<BlockPos, BlockState> data = entry.getValue();
             if (data.get(pos) != null) {
