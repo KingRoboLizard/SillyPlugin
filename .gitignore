@@ -3,6 +3,7 @@
 
 silly_out/
 /publish/mr_key.txt
+**/__pycache__
 
 *.iml
 *.ipr
