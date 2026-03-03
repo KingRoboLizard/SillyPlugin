@@ -1,5 +1,6 @@
 package dev.celestial.silly.lua;
 
+import dev.celestial.silly.OverridableBoolean;
 import dev.celestial.silly.SillyEnums;
 import dev.celestial.silly.SillyPlugin;
 import dev.celestial.silly.SillyUtil;
@@ -10,7 +11,10 @@ import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Abilities;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
@@ -36,9 +40,11 @@ import org.figuramc.figura.lua.docs.LuaMethodOverload;
 import org.figuramc.figura.lua.docs.LuaTypeDoc;
 import org.figuramc.figura.math.vector.FiguraVec2;
 import org.figuramc.figura.math.vector.FiguraVec3;
+import org.figuramc.figura.utils.EntityUtils;
 import org.figuramc.figura.utils.LuaUtils;
 import org.luaj.vm2.*;
 
+import java.lang.reflect.Array;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -50,8 +56,9 @@ import java.util.function.Consumer;
 public class SillyAPI {
     public final Avatar avatar;
     public final Minecraft minecraft;
-    public boolean mayFlyOverride = false;
-    public boolean mayFly = false;
+    public OverridableBoolean mayFly = new OverridableBoolean();
+    public OverridableBoolean gravity = new OverridableBoolean();
+    public OverridableBoolean friction = new OverridableBoolean();
     public boolean noclip = false;
     public boolean local;
     public Set<SillyEnums.GUI_ELEMENT> disabledElements = new HashSet<>();
@@ -68,6 +75,24 @@ public class SillyAPI {
 
     public SillyAPI(FiguraLuaRuntime runtime) {
         this(runtime.owner);
+    }
+
+    public void onPanic(boolean panic) {
+        if (!local) return;
+        if (minecraft.player != null) {
+            Abilities a = minecraft.player.getAbilities();
+            // .getValue() will not be null if .hasValue() is true
+            //noinspection DataFlowIssue
+            if (a.flying && !a.mayfly && this.mayFly.isOverridden() && this.mayFly.getValue()) {
+                a.flying = false;
+            }
+            if (gravity.isOverridden())
+                //noinspection DataFlowIssue
+                minecraft.player.setNoGravity(!panic && gravity.getValue());
+            if (friction.isOverridden())
+                //noinspection DataFlowIssue
+                minecraft.player.setDiscardFriction(!panic && gravity.getValue());
+        }
     }
 
     public void cleanup() {
@@ -90,9 +115,15 @@ public class SillyAPI {
         if (!local) return; // START host cleanup
         if (minecraft.player != null) {
             Abilities a = minecraft.player.getAbilities();
-            if (a.flying && !a.mayfly && this.mayFly && this.mayFlyOverride) {
+            // .getValue() will not be null if .hasValue() is true
+            //noinspection DataFlowIssue
+            if (a.flying && !a.mayfly && this.mayFly.isOverridden() && this.mayFly.getValue()) {
                 a.flying = false;
             }
+            if (gravity.isOverridden())
+                minecraft.player.setNoGravity(false);
+            if (friction.isOverridden())
+                minecraft.player.setDiscardFriction(false);
         }
         SillyPlugin.hostInstance = null;
     }
@@ -121,6 +152,56 @@ public class SillyAPI {
                 || motd.getString().contains("§s§i§y§p§u§g§i")
         )) return;
         callback.accept(minecraft.player);
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc(
+            value = "silly.set_gravity",
+            overloads = {
+                    @LuaMethodOverload(
+                            argumentTypes = { Boolean.class },
+                            argumentNames = { "gravity" }
+                    )
+            }
+    )
+    public SillyAPI setGravity(Boolean gravity) {
+        cheatExecutor(plr -> {
+            plr.setNoGravity((!gravity));
+            this.gravity.setValue(gravity);
+        });
+        return this;
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc(value = "silly.get_version")
+    public String getVersion() {
+        return SillyPlugin.Loader.getModVersion(SillyPlugin.MOD_ID);
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc(value = "silly.set_friction",
+        overloads = {
+            @LuaMethodOverload(
+                    argumentTypes = { Boolean.class },
+                    argumentNames = { "friction" }
+            )
+        }
+    )
+    public SillyAPI setFriction(Boolean friction) {
+        cheatExecutor(plr -> {
+            plr.setDiscardFriction((!friction));
+            this.friction.setValue(friction);
+        });
+        return this;
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc(value = "silly.get_permissions")
+    public LuaTable getPermissions() {
+        LuaTable table = new LuaTable();
+        table.set("FAKE_BLOCKS", LuaValue.valueOf(avatar.permissions.get(SillyPlugin.FAKE_BLOCKS) != 0));
+
+        return table;
     }
 
     @LuaWhitelist
@@ -323,28 +404,35 @@ public class SillyAPI {
         return setFakeBlocksEnabled(state);
     }
 
-
-//    @LuaWhitelist
-//    public Object __index(String args) {
-//        if (Objects.equals(args, "ping")) {
-//            return ping;
-//        }
-//        return null;
-//    }
-
-//    @LuaWhitelist
-//    public VarArgFunction ping = new VarArgFunction() {
-//        @Override
-//        public Varargs invoke(Varargs args) {
-//            // arg 1 is silly
-//            // arg 2 is PingFunction
-//            // the rest are ping args
-//            LuaValue pingFunc = args.arg(2);
-//            return super.invoke(args);
-//        }
-//    }
+    @LuaWhitelist
+    @LuaMethodDoc(
+            value = "silly.set_body_rot",
+            overloads = {
+                    @LuaMethodOverload(
+                            argumentTypes = { Float.class },
+                            argumentNames = {"rot"}
+                    )
+            }
+    )
+    public SillyAPI setBodyRot(Float rot) {
+        Entity entity = EntityUtils.getEntityByUUID(avatar.owner);
+        if (entity instanceof Player plr) {
+            plr.setYBodyRot(rot);
+        }
+        return this;
+    }
 
     @LuaWhitelist
+    @LuaMethodDoc(
+            value = "silly.ping",
+            overloads = {
+                    @LuaMethodOverload(
+                        // TODO: is varargs right?
+                        argumentTypes = { String.class, Varargs.class },
+                        argumentNames = { "pingFunc", "args" }
+                    )
+            }
+    )
     public SillyAPI ping(String pingFunc, Object... args) {
         if (!local) return this;
         PingFunction pong = avatar.luaRuntime.ping.get(pingFunc);
@@ -418,12 +506,7 @@ public class SillyAPI {
     )
     public void setFly(Boolean mayFly) {
         cheatExecutor(plr -> {
-            if (mayFly == null) {
-                this.mayFlyOverride = false;
-            } else {
-                this.mayFlyOverride = true;
-                this.mayFly = mayFly;
-            }
+            this.mayFly.setValue(mayFly);
         });
     }
 

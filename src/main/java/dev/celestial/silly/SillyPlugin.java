@@ -1,5 +1,6 @@
 package dev.celestial.silly;
 
+import dev.celestial.silly.loaders.ISillyLoader;
 import dev.celestial.silly.lua.SillyAPI;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
@@ -20,7 +21,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SillyPlugin {
+    public static final String MOD_ID = "sillyplugin";
     public static Logger LOGGER = LoggerFactory.getLogger("SillyPlugin");
+    public static ISillyLoader Loader;
     @Nullable
     public static SillyAPI hostInstance;
     public static Permissions BUMPSCOCITY = new Permissions("BUMPSCOCITY", 0, 1000, 0, 0, 0, 0, 0);
@@ -75,7 +78,8 @@ public class SillyPlugin {
         return false;
     }
 
-    public static void initialize() {
+    public static void initialize(ISillyLoader loader) {
+        Loader = loader;
         PermissionManager.CUSTOM_PERMISSIONS.put("sillyplugin", List.of(BUMPSCOCITY, FAKE_BLOCKS/*, COLLIDERS*/));
     }
 }

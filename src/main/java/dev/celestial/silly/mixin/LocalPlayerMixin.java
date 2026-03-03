@@ -1,7 +1,5 @@
 package dev.celestial.silly.mixin;
 
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.authlib.GameProfile;
 import dev.celestial.silly.SillyPlugin;
 import dev.celestial.silly.lua.SillyAPI;
@@ -28,20 +26,20 @@ public abstract class LocalPlayerMixin extends Player {
         boolean orig = original.call(instance);
         SillyAPI silly = SillyPlugin.hostInstance;
         if (silly == null) return orig;
-        if (!silly.mayFlyOverride) return orig;
+        if (!silly.mayFly.isOverridden()) return orig;
         if (!silly.cheatsEnabled()) return orig;
         if (AvatarManager.panic) return orig;
-        return silly.mayFly;
+        return silly.mayFly.getValue();
     }
     *///?} else {
     @Redirect(method = "aiStep", at = @At(value = "FIELD", target = "Lnet/minecraft/world/entity/player/Abilities;mayfly:Z", opcode = Opcodes.GETFIELD))
     public boolean getAbilitiesMixin(Abilities instance) {
         SillyAPI silly = SillyPlugin.hostInstance;
         if (silly == null) return instance.mayfly;
-        if (!silly.mayFlyOverride) return instance.mayfly;
+        if (!silly.mayFly.isOverridden()) return instance.mayfly;
         if (!silly.cheatsEnabled()) return instance.mayfly;
         if (AvatarManager.panic) return instance.mayfly;
-        return silly.mayFly;
+        return silly.mayFly.getValue();
     }
     //?}
 }

@@ -46,5 +46,6 @@ public abstract class AvatarManagerMixin {
                 level.setBlock(pos, state, 2);;
             }
         });
+        if (SillyPlugin.hostInstance != null) SillyPlugin.hostInstance.onPanic(panic);
     }
 }

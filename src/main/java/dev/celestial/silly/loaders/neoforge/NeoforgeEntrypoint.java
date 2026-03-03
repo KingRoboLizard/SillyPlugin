@@ -9,17 +9,22 @@ import net.neoforged.fml.ModLoader;
 import net.neoforged.fml.common.Mod;
 import org.slf4j.Logger;
 
-@Mod("sillyplugin")
+@Mod(SillyPlugin.MOD_ID)
 public class NeoforgeEntrypoint implements ISillyLoader {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     public NeoforgeEntrypoint() {
-        SillyPlugin.initialize();
+        SillyPlugin.initialize(this);
     }
 
     @Override
     public boolean isModLoaded(String mod_id) {
         return ModList.get().isLoaded(mod_id);
+    }
+
+    @Override
+    public String getModVersion(String mod_id) {
+        return ModList.get().getModContainerById(SillyPlugin.MOD_ID).map(cont -> cont.getModInfo().getVersion().getQualifier()).orElse(null);
     }
 }
 *///?}
