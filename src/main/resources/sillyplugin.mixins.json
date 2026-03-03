@@ -20,6 +20,7 @@
   "mixins": [
     "AvatarManagerMixin",
     "AvatarMixin",
+    "EntityAPIMixin",
     "EntityMixin",
     "EventsAPIMixin",
     "FiguraAPIManagerMixin",
@@ -27,6 +28,7 @@
     "FiguraGlobalsDocsMixin",
     "FiguraListDocsMixin",
     "FiguraLuaRuntimeMixin",
-    "PlayerMixin"
+    "PlayerMixin",
+    "RuntimeAccessor"
   ]
 }
