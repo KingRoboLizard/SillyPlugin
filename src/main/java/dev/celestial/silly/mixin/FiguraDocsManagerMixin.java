@@ -1,6 +1,7 @@
 package dev.celestial.silly.mixin;
 
 import dev.celestial.silly.SillyEnums;
+import dev.celestial.silly.lua.BackportsAPI;
 import dev.celestial.silly.lua.SillyAPI;
 import org.figuramc.figura.lua.docs.FiguraDocsManager;
 import org.spongepowered.asm.mixin.Final;
@@ -22,7 +23,7 @@ public class FiguraDocsManagerMixin {
     private static Map<Class<?>, String> NAME_MAP;
 
     static {
-        GLOBAL_CHILDREN.put("silly", List.of(SillyAPI.class));
+        GLOBAL_CHILDREN.put("silly", List.of(SillyAPI.class, BackportsAPI.class));
 
         NAME_MAP.put(SillyEnums.GUI_ELEMENT.class, "GuiElement");
     }

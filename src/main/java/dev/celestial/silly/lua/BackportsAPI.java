@@ -8,6 +8,9 @@ import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.lua.FiguraLuaRuntime;
 import org.figuramc.figura.lua.LuaNotNil;
 import org.figuramc.figura.lua.LuaWhitelist;
+import org.figuramc.figura.lua.docs.LuaMethodDoc;
+import org.figuramc.figura.lua.docs.LuaMethodOverload;
+import org.figuramc.figura.lua.docs.LuaTypeDoc;
 import org.figuramc.figura.utils.PathUtils;
 import org.luaj.vm2.*;
 
@@ -16,6 +19,7 @@ import java.nio.file.Path;
 import java.util.*;
 
 @LuaWhitelist
+@LuaTypeDoc(name = "BackportsAPI", value = "silly_backports")
 public class BackportsAPI {
     public Avatar owner;
     public FiguraLuaRuntime runtime;
@@ -49,13 +53,34 @@ public class BackportsAPI {
     }
 
     @LuaWhitelist
+    @LuaMethodDoc(value = "silly_backports.get_caller")
     public String getCaller() {
         Pair<UUID, String> caller = callerStack.peek();
-        if (caller != null) return caller.getLeft().toString();
+        if (caller != null) {
+            UUID uuid = caller.getLeft();
+            if (uuid != owner.owner) return uuid.toString();
+        }
         return null;
     }
 
     @LuaWhitelist
+    @LuaMethodDoc(
+            overloads = {
+                    @LuaMethodOverload(
+                            argumentTypes = String.class,
+                            argumentNames = "scriptName"
+                    ),
+                    @LuaMethodOverload(
+                            argumentTypes = {String.class, String.class},
+                            argumentNames = {"scriptName", "scriptContents"}
+                    ),
+                    @LuaMethodOverload(
+                            argumentTypes = {String.class, String.class, String.class},
+                            argumentNames = {"scriptName", "scriptContents", "side"}
+                    )
+            },
+            value = "silly_backports.add_script"
+    )
     public void addScript(@LuaNotNil String path, String contents, String side) {
         if (side == null) side = "BOTH";
         side = side.toUpperCase();
@@ -84,6 +109,9 @@ public class BackportsAPI {
     }
 
     @LuaWhitelist
+    @LuaMethodDoc(
+            value = "silly_backports.get_scripts"
+    )
     public LuaTable getScripts(String path) {
         if (path == null) path = "";
         // iterate over all script names and add them if their name starts with the path query
@@ -104,6 +132,13 @@ public class BackportsAPI {
     }
 
     @LuaWhitelist
+    @LuaMethodDoc(
+            overloads = @LuaMethodOverload(
+                    argumentTypes = String.class,
+                    argumentNames = "scriptName"
+            ),
+            value = "silly_backports.get_script"
+    )
     public String getScript(String scriptPath) {
         if (scriptPath == null) scriptPath = "";
         RuntimeAccessor runtimeAccessor = ((RuntimeAccessor)this.runtime);
@@ -111,6 +146,12 @@ public class BackportsAPI {
         LuaFunction getInfoFunction = runtimeAccessor.getGetInfoFunction();
         Path path = PathUtils.getPath(scriptPath);
         return scripts.get(PathUtils.computeSafeString(PathUtils.isAbsolute(path) ? path : PathUtils.getWorkingDirectory(getInfoFunction).resolve(path)));
+    }
+
+
+    @Override
+    public String toString() {
+        return "BackportsAPI";
     }
 }
 

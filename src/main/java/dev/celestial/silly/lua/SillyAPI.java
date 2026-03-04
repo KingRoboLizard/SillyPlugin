@@ -370,6 +370,16 @@ public class SillyAPI {
     }
 
     @LuaWhitelist
+    @LuaMethodDoc(
+            value = "silly.disconnect",
+            overloads = {
+                    @LuaMethodOverload(),
+                    @LuaMethodOverload(
+                            argumentTypes = {String.class},
+                            argumentNames = {"msg"}
+                    )
+            }
+    )
     public void disconnect(String msg) {
         msg = msg != null ? msg : "Disconnected";
         Component comp = Component.literal(msg);

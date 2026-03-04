@@ -1,5 +1,6 @@
 package dev.celestial.silly.mixin;
 
+import dev.celestial.silly.lua.BackportsAPI;
 import dev.celestial.silly.lua.SillyAPI;
 import org.figuramc.figura.lua.docs.FiguraGlobalsDocs;
 import org.figuramc.figura.lua.docs.LuaFieldDoc;
