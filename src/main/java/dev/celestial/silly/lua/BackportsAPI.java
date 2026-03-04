@@ -1,7 +1,7 @@
 package dev.celestial.silly.lua;
 
 import com.llamalad7.mixinextras.lib.apache.commons.tuple.Pair;
-import dev.celestial.silly.SillyPlugin;
+import dev.celestial.silly.CallerContext;
 import dev.celestial.silly.mixin.RuntimeAccessor;
 import net.minecraft.nbt.ByteArrayTag;
 import org.figuramc.figura.avatar.Avatar;
@@ -10,7 +10,6 @@ import org.figuramc.figura.lua.LuaNotNil;
 import org.figuramc.figura.lua.LuaWhitelist;
 import org.figuramc.figura.utils.PathUtils;
 import org.luaj.vm2.*;
-import org.luaj.vm2.lib.VarArgFunction;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;

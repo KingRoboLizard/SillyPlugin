@@ -1,7 +1,9 @@
 package dev.celestial.silly.mixin;
 
-import com.llamalad7.mixinextras.sugar.ref.LocalRef;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import dev.celestial.silly.lua.BackportsAPI;
+import dev.celestial.silly.CallerContext;
 import dev.celestial.silly.lua.SillyAPI;
 import dev.celestial.silly.not_a_mixin.AvatarAccessor;
 import dev.celestial.silly.not_a_mixin.EventsAccessor;
@@ -17,9 +19,6 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-
-import java.util.UUID;
 
 @Mixin(value = FiguraLuaRuntime.class, remap = false)
 public abstract class FiguraLuaRuntimeMixin {
@@ -32,24 +31,18 @@ public abstract class FiguraLuaRuntimeMixin {
     @Shadow
     public abstract void error(Throwable e);
 
-    @Inject(method = "run", at = @At(value = "HEAD"))
-    public void runEnter(Object toRun, Avatar.Instructions limit, Object[] args, CallbackInfoReturnable<Varargs> cir) {
-        BackportsAPI.pushStack(owner.owner, "avatar.run/" + toRun.toString());
+    @WrapMethod(method = "run")
+    public Varargs runMixin(Object toRun, Avatar.Instructions limit, Object[] args, Operation<Varargs> original) {
+        try(CallerContext ctx = BackportsAPI.openCallerContext(owner.owner, "avatarRun")) {
+            return original.call(toRun, limit, args);
+        }
     }
 
-    @Inject(method = "run", at = @At("RETURN"))
-    public void runExit(Object toRun, Avatar.Instructions limit, Object[] args, CallbackInfoReturnable<Varargs> cir) {
-        BackportsAPI.popStack(owner.owner, "avatar.run/" + toRun.toString());
-    }
-
-    @Inject(method = "initializeScript", at = @At(value = "INVOKE", target = "Ljava/util/Stack;push(Ljava/lang/Object;)Ljava/lang/Object;"))
-    public void initScriptEnter(String str, CallbackInfoReturnable<Varargs> cir) {
-        BackportsAPI.pushStack(owner.owner, "initScript/" + str);
-    }
-
-    @Inject(method = "initializeScript", at = @At("TAIL"))
-    public void initScriptExit(String str, CallbackInfoReturnable<Varargs> cir) {
-        BackportsAPI.popStack(owner.owner, "initScript/" + str);
+    @WrapMethod(method = "initializeScript")
+    public Varargs initScriptEnter(String str, Operation<Varargs> original) {
+        try(CallerContext ctx = BackportsAPI.openCallerContext(owner.owner, "initScript/" + str)) {
+            return original.call(str);
+        }
     }
 
     @Inject(method="error", at = @At("HEAD"), cancellable = true)

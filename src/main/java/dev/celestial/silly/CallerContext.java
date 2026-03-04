@@ -1,4 +1,6 @@
-package dev.celestial.silly.lua;
+package dev.celestial.silly;
+
+import dev.celestial.silly.lua.BackportsAPI;
 
 import java.util.UUID;
 

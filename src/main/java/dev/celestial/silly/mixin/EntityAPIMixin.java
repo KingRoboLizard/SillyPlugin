@@ -1,9 +1,8 @@
 package dev.celestial.silly.mixin;
 
 import com.llamalad7.mixinextras.lib.apache.commons.tuple.Pair;
-import com.llamalad7.mixinextras.sugar.Local;
 import dev.celestial.silly.lua.BackportsAPI;
-import dev.celestial.silly.lua.CallerContext;
+import dev.celestial.silly.CallerContext;
 import org.figuramc.figura.lua.api.entity.EntityAPI;
 import org.jetbrains.annotations.NotNull;
 import org.luaj.vm2.LuaFunction;
