@@ -24,7 +24,7 @@
     "figura.docs.silly.get_permissions": "Gets the SillyPlugin permissions your avatar has.",
     "figura.docs.silly.ping": "Runs one of your avatars pings, even on local.",
 
-    "figura.docs.silly_backports": "Useful 0.1.6 features, backported.\nAlso see FOX's Misc Figura Backport!",
+    "figura.docs.silly_backports": "Useful 0.1.6 features, backported.\nExists under the global \"silly_backports\".\nAlso see FOX's Misc Figura Backport!",
     "figura.docs.silly_backports.add_script": "Takes a path to the script, the contents of the script, and what side the script should be added to.\nIf the contents are nil, then the script is removed from the avatar.\nSide must be either \"NBT\", \"RUNTIME\", or \"BOTH\". If nil, it will default to \"BOTH\".",
     "figura.docs.silly_backports.get_script": "Takes a path to the script and returns the contents of the script.\nThis is different from using avatar:getNBT since the NBT stores byte arrays instead of a string",
     "figura.docs.silly_backports.get_scripts": "Returns a table of all scripts in the avatar with the name as the index and the contents as the value. If a string is supplied then all scripts starting with the string will be returned",
