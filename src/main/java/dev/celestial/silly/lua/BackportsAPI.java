@@ -2,15 +2,19 @@ package dev.celestial.silly.lua;
 
 import com.llamalad7.mixinextras.lib.apache.commons.tuple.Pair;
 import dev.celestial.silly.CallerContext;
+import dev.celestial.silly.SillyPlugin;
 import dev.celestial.silly.mixin.RuntimeAccessor;
 import net.minecraft.nbt.ByteArrayTag;
+import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.gui.FiguraToast;
 import org.figuramc.figura.lua.FiguraLuaRuntime;
 import org.figuramc.figura.lua.LuaNotNil;
 import org.figuramc.figura.lua.LuaWhitelist;
 import org.figuramc.figura.lua.docs.LuaMethodDoc;
 import org.figuramc.figura.lua.docs.LuaMethodOverload;
 import org.figuramc.figura.lua.docs.LuaTypeDoc;
+import org.figuramc.figura.utils.FiguraText;
 import org.figuramc.figura.utils.PathUtils;
 import org.luaj.vm2.*;
 
@@ -43,9 +47,15 @@ public class BackportsAPI {
         Pair<UUID, String> item = callerStack.pop();
         UUID uuid = item.getLeft();
         Pair<UUID, String> expected = Pair.of(expectedUUID, expectedContext);
-        if (uuid != expectedUUID || !Objects.equals(expectedContext, item.getRight()))
-            throw new IllegalStateException("Caller stack exploded (expected " + formatStackPair(expected)
-                    + ", got " + formatStackPair(item));
+        if (uuid != expectedUUID || !Objects.equals(expectedContext, item.getRight())) {
+            String msg = "Caller stack exploded (expected " + formatStackPair(expected)
+                    + ", got " + formatStackPair(item);
+            if (!DevAPI.caller_stack_corruption_warn)
+                throw new IllegalStateException(msg);
+            FiguraToast.sendToast(FiguraText.of(msg), FiguraToast.ToastType.ERROR);
+            SillyPlugin.LOGGER.info(msg);
+            callerStack.clear();
+        }
     }
 
     private static String formatStackPair(Pair<UUID, String> pair) {

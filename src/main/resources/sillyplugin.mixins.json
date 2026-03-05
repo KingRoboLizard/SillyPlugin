@@ -20,6 +20,7 @@
   "mixins": [
     "AvatarManagerMixin",
     "AvatarMixin",
+    "BlockMixin",
     "EntityAPIMixin",
     "EntityMixin",
     "EventsAPIMixin",

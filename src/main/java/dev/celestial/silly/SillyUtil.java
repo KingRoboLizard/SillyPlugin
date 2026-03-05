@@ -1,7 +1,9 @@
 package dev.celestial.silly;
 
 import com.mojang.authlib.GameProfile;
+import dev.celestial.silly.lua.SillyAPI;
 import dev.celestial.silly.mixin.MinecraftAccessor;
+import dev.celestial.silly.not_a_mixin.AvatarAccessor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.player.AbstractClientPlayer;
@@ -18,6 +20,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public class SillyUtil {
+    public static final boolean DEV_MODE = true;
     private static Services services;
     public static Avatar getAvatar(String username) {
         Minecraft mc = Minecraft.getInstance();
@@ -51,5 +54,20 @@ public class SillyUtil {
         }
 
         return AvatarManager.getAvatarForPlayer(uuid);
+    }
+
+    public static boolean canCheat(SillyAPI api) {
+        if (AvatarManager.panic) return false;
+        if (api == null) return false;
+        return api.cheatsEnabled();
+    }
+
+    public static boolean canCheat(Avatar avatar) {
+        SillyAPI api = ((AvatarAccessor)avatar).silly$getSilly();
+        return canCheat(api);
+    }
+
+    public static boolean canCheat() {
+        return canCheat(SillyPlugin.hostInstance);
     }
 }

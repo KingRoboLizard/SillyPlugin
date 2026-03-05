@@ -1,6 +1,6 @@
 package dev.celestial.silly.lua;
 
-import dev.celestial.silly.OverridableBoolean;
+import dev.celestial.silly.Overridable;
 import dev.celestial.silly.SillyEnums;
 import dev.celestial.silly.SillyPlugin;
 import dev.celestial.silly.SillyUtil;
@@ -12,7 +12,6 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Abilities;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -30,6 +29,7 @@ import org.figuramc.figura.config.Configs;
 import org.figuramc.figura.gui.widgets.lists.AvatarList;
 import org.figuramc.figura.lua.FiguraLuaRuntime;
 import org.figuramc.figura.lua.LuaNotNil;
+import org.figuramc.figura.lua.LuaTypeManager;
 import org.figuramc.figura.lua.LuaWhitelist;
 import org.figuramc.figura.lua.api.ping.PingArg;
 import org.figuramc.figura.lua.api.ping.PingFunction;
@@ -42,10 +42,8 @@ import org.figuramc.figura.math.vector.FiguraVec2;
 import org.figuramc.figura.math.vector.FiguraVec3;
 import org.figuramc.figura.utils.EntityUtils;
 import org.figuramc.figura.utils.LuaUtils;
-import org.figuramc.figura.utils.TextUtils;
 import org.luaj.vm2.*;
 
-import java.lang.reflect.Array;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -57,9 +55,11 @@ import java.util.function.Consumer;
 public class SillyAPI {
     public final Avatar avatar;
     public final Minecraft minecraft;
-    public OverridableBoolean mayFly = new OverridableBoolean();
-    public OverridableBoolean gravity = new OverridableBoolean();
-    public OverridableBoolean friction = new OverridableBoolean();
+    public Overridable<Boolean> mayFly = new Overridable<>();
+    public Overridable<Boolean> gravity = new Overridable<>();
+    public Overridable<Boolean> friction = new Overridable<>();
+    public Overridable<Float> frictionValue = new Overridable<>();
+    public boolean disableEntityCollisions = false;
     public boolean noclip = false;
     public boolean local;
     public Set<SillyEnums.GUI_ELEMENT> disabledElements = new HashSet<>();
@@ -161,7 +161,8 @@ public class SillyAPI {
             overloads = {
                     @LuaMethodOverload(
                             argumentTypes = { Boolean.class },
-                            argumentNames = { "gravity" }
+                            argumentNames = { "gravity" },
+                            returnType = SillyAPI.class
                     )
             }
     )
@@ -169,6 +170,24 @@ public class SillyAPI {
         cheatExecutor(plr -> {
             plr.setNoGravity((!gravity));
             this.gravity.setValue(gravity);
+        });
+        return this;
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc(
+            value = "silly.set_entity_collisions",
+            overloads = {
+                    @LuaMethodOverload(
+                            argumentTypes = { Boolean.class },
+                            argumentNames = { "collisions" },
+                            returnType = SillyAPI.class
+                    )
+            }
+    )
+    public SillyAPI setEntityCollisions(Boolean collisions) {
+        cheatExecutor(plr -> {
+            this.disableEntityCollisions = !collisions;
         });
         return this;
     }
@@ -184,15 +203,34 @@ public class SillyAPI {
         overloads = {
             @LuaMethodOverload(
                     argumentTypes = { Boolean.class },
-                    argumentNames = { "friction" }
+                    argumentNames = { "friction" },
+                    returnType = SillyAPI.class
+            ),
+            @LuaMethodOverload(
+                    argumentTypes = { Float.class },
+                    argumentNames = { "friction" },
+                    returnType = SillyAPI.class
             )
         }
     )
-    public SillyAPI setFriction(Boolean friction) {
-        cheatExecutor(plr -> {
-            plr.setDiscardFriction((!friction));
-            this.friction.setValue(friction);
-        });
+    public SillyAPI setFriction(Object friction) {
+        if (friction instanceof Boolean fric) {
+            cheatExecutor(plr -> {
+                plr.setDiscardFriction((!fric));
+                this.friction.setValue(fric);
+            });
+        } else if (friction instanceof Float fric) {
+            cheatExecutor(plr -> {
+                this.frictionValue.setValue(fric);
+            });
+        } else if (friction == null) {
+            setFriction(true);
+            this.friction.setValue(null);
+            this.frictionValue.setValue(null);
+        } else {
+            minecraft.gui.getChat().addMessage(Component.literal(friction.getClass().getSimpleName()));
+            avatar.luaRuntime.typeManager.javaToLua(friction).arg1().checkboolean();
+        }
         return this;
     }
 
@@ -236,18 +274,21 @@ public class SillyAPI {
             overloads = {
                     @LuaMethodOverload(
                             argumentTypes = {SillyEnums.GUI_ELEMENT.class, Boolean.class},
-                            argumentNames = { "element", "state" }
+                            argumentNames = { "element", "state" },
+                            returnType = SillyAPI.class
                     ),
                     @LuaMethodOverload(
                             argumentTypes = {LuaTable.class, Boolean.class},
-                            argumentNames = { "elements", "state" }
+                            argumentNames = { "elements", "state" },
+                            returnType = SillyAPI.class
                     ),
                     @LuaMethodOverload(
                             argumentTypes = {SillyEnums.GUI_ELEMENT.class},
-                            argumentNames = { "element" }
+                            argumentNames = { "element" },
+                            returnType = SillyAPI.class
                     )
             },
-            aliases = { "setRenderHudElement" }
+            aliases = { "setRenderHudElement", "setHudElementDisabled" }
     )
     public SillyAPI setHudElementVisible(@LuaNotNil Object elements, Boolean state) {
         if (!local) return this;
@@ -270,13 +311,13 @@ public class SillyAPI {
     }
 
     @LuaWhitelist
-    public SillyAPI setRenderHudElement(@LuaNotNil String element, Boolean state) {
+    public SillyAPI setRenderHudElement(@LuaNotNil Object element, Boolean state) {
         return setHudElementVisible(element, state);
     }
 
     // cosmic your oopsie is now canon
     @LuaWhitelist
-    public SillyAPI setHudElementDisabled(@LuaNotNil String element, Boolean state) {
+    public SillyAPI setHudElementDisabled(@LuaNotNil Object element, Boolean state) {
         return setHudElementVisible(element, !state);
     }
 
@@ -452,7 +493,8 @@ public class SillyAPI {
                     @LuaMethodOverload(
                         // TODO: is varargs right?
                         argumentTypes = { String.class, Varargs.class },
-                        argumentNames = { "pingFunc", "args" }
+                        argumentNames = { "pingFunc", "args" },
+                        returnType = SillyAPI.class
                     )
             }
     )

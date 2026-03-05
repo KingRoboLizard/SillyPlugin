@@ -20,9 +20,10 @@
     "figura.docs.silly.set_hud_element_visible": "Sets the visibility of a hud element.",
     "figura.docs.silly.get_version": "Returns the current version of SillyPlugin.",
     "figura.docs.silly.set_gravity": "Disables or enables gravity.\nRequires cheats.",
-    "figura.docs.silly.set_friction": "Disables or enables friction.\nRequires cheats.",
+    "figura.docs.silly.set_friction": "Sets your friction. False to disable friction.\nRequires cheats.",
     "figura.docs.silly.get_permissions": "Gets the SillyPlugin permissions your avatar has.",
     "figura.docs.silly.ping": "Runs one of your avatars pings, even on local.",
+    "figura.docs.silly.set_entity_collisions": "Sets whether or not you get pushed by other entities.",
 
     "figura.docs.silly_backports": "Useful 0.1.6 features, backported.\nExists under the global \"silly_backports\".\nAlso see FOX's Misc Figura Backport!",
     "figura.docs.silly_backports.add_script": "Takes a path to the script, the contents of the script, and what side the script should be added to.\nIf the contents are nil, then the script is removed from the avatar.\nSide must be either \"NBT\", \"RUNTIME\", or \"BOTH\". If nil, it will default to \"BOTH\".",

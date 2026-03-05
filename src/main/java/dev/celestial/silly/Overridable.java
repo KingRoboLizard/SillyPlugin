@@ -2,23 +2,19 @@ package dev.celestial.silly;
 
 import org.jetbrains.annotations.Nullable;
 
-// utility class for booleans that have 3 states
-// - set true
-// - set false
-// - unset
-public class OverridableBoolean {
+public class Overridable<T> {
     private Boolean overridden = false;
-    private Boolean value;
+    private T value;
     public Boolean isOverridden() {
         return overridden;
     }
 
     @Nullable
-    public Boolean getValue() {
+    public T getValue() {
         return value;
     }
 
-    public void setValue(@Nullable Boolean v) {
+    public void setValue(@Nullable T v) {
         overridden = v != null;
         value = v;
     }

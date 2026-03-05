@@ -1,6 +1,8 @@
 package dev.celestial.silly.mixin;
 
+import dev.celestial.silly.SillyUtil;
 import dev.celestial.silly.lua.BackportsAPI;
+import dev.celestial.silly.lua.DevAPI;
 import dev.celestial.silly.lua.SillyAPI;
 import dev.celestial.silly.not_a_mixin.AvatarAccessor;
 import org.figuramc.figura.lua.FiguraAPIManager;
@@ -28,6 +30,10 @@ public class FiguraAPIManagerMixin {
     static {
         WHITELISTED_CLASSES.add(SillyAPI.class);
         WHITELISTED_CLASSES.add(BackportsAPI.class);
+        if (SillyUtil.DEV_MODE) {
+            WHITELISTED_CLASSES.add(DevAPI.class);
+            API_GETTERS.put("silly_dev", r -> r.owner.isHost ? new DevAPI(r) : null);
+        }
 
         API_GETTERS.put("silly", r -> ((AvatarAccessor)r.owner).silly$setSilly(new SillyAPI(r.owner)));
         API_GETTERS.put("silly_backports", BackportsAPI::new);
