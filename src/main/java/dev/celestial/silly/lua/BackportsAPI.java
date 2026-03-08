@@ -1,11 +1,12 @@
 package dev.celestial.silly.lua;
 
 import com.llamalad7.mixinextras.lib.apache.commons.tuple.Pair;
-import dev.celestial.silly.CallerContext;
+import dev.celestial.silly.SillyUtil;
+import dev.celestial.silly.helper.CallerContext;
 import dev.celestial.silly.SillyPlugin;
+import dev.celestial.silly.helper.CyclicalDeque;
 import dev.celestial.silly.mixin.RuntimeAccessor;
 import net.minecraft.nbt.ByteArrayTag;
-import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.gui.FiguraToast;
 import org.figuramc.figura.lua.FiguraLuaRuntime;
@@ -31,30 +32,44 @@ public class BackportsAPI {
         this.runtime = runtime;
         this.owner = runtime.owner;
     }
-    public static Deque<Pair<UUID, String>> callerStack = new ArrayDeque<>();
+    public static ThreadLocal<Deque<Pair<UUID, String>>> callerStack = ThreadLocal.withInitial(ArrayDeque::new);
+    public static CyclicalDeque<String> ops = new CyclicalDeque<>(32);
 
     public static CallerContext openCallerContext(UUID uuid, String context) {
         return CallerContext.Open(uuid, context);
     }
 
     public static void pushStack(UUID uuid, String context) {
-//        SillyPlugin.LOGGER.info("PUSH {}", formatStackPair(Pair.of(uuid, context)));
-        callerStack.push(Pair.of(uuid, context));
+        ops.push("PUSH " + formatStackPair(Pair.of(uuid, context)));
+        callerStack.get().push(Pair.of(uuid, context));
     }
 
     public static void popStack(UUID expectedUUID, String expectedContext) {
-//        SillyPlugin.LOGGER.info("POP {}", formatStackPair(Pair.of(expectedUUID, expectedContext)));
-        Pair<UUID, String> item = callerStack.pop();
-        UUID uuid = item.getLeft();
+        ops.push("POP " + formatStackPair(Pair.of(expectedUUID, expectedContext)));
         Pair<UUID, String> expected = Pair.of(expectedUUID, expectedContext);
-        if (uuid != expectedUUID || !Objects.equals(expectedContext, item.getRight())) {
-            String msg = "Caller stack exploded (expected " + formatStackPair(expected)
-                    + ", got " + formatStackPair(item);
-            if (!DevAPI.caller_stack_corruption_warn)
+        try {
+            Pair<UUID, String> item = callerStack.get().pop();
+            UUID uuid = item.getLeft();
+            if (uuid != expectedUUID || !Objects.equals(expectedContext, item.getRight())) {
+                String msg = "silly_backports:getCaller() stack error (expected " + formatStackPair(expected)
+                        + ", got " + formatStackPair(item);
+                if (DevAPI.throw_on_bad_call_stack)
+                    throw new IllegalStateException(msg);
+                FiguraToast.sendToast(FiguraText.of("SillyPlugin error"), FiguraText.of(msg), FiguraToast.ToastType.ERROR);
+                SillyPlugin.LOGGER.error(msg);
+                for (String op : ops) {
+                    SillyPlugin.LOGGER.error(" -> {}", op);
+                }
+                callerStack.get().clear();
+            }
+        }
+        catch (NoSuchElementException e) {
+            String msg = "silly_backports:getCaller() stack error (expected " + formatStackPair(expected)
+                    + ", was empty";
+            if (DevAPI.throw_on_bad_call_stack)
                 throw new IllegalStateException(msg);
-            FiguraToast.sendToast(FiguraText.of(msg), FiguraToast.ToastType.ERROR);
-            SillyPlugin.LOGGER.info(msg);
-            callerStack.clear();
+            FiguraToast.sendToast(FiguraText.of("SillyPlugin error"), FiguraText.of(msg), FiguraToast.ToastType.ERROR);
+            SillyPlugin.LOGGER.error(msg);
         }
     }
 
@@ -65,7 +80,7 @@ public class BackportsAPI {
     @LuaWhitelist
     @LuaMethodDoc(value = "silly_backports.get_caller")
     public String getCaller() {
-        Pair<UUID, String> caller = callerStack.peek();
+        Pair<UUID, String> caller = callerStack.get().peek();
         if (caller != null) {
             UUID uuid = caller.getLeft();
             if (uuid != owner.owner) return uuid.toString();

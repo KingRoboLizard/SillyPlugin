@@ -1,4 +1,4 @@
-package dev.celestial.silly;
+package dev.celestial.silly.helper;
 
 import org.jetbrains.annotations.Nullable;
 

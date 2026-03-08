@@ -3,7 +3,7 @@ package dev.celestial.silly.mixin;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import dev.celestial.silly.lua.BackportsAPI;
-import dev.celestial.silly.CallerContext;
+import dev.celestial.silly.helper.CallerContext;
 import dev.celestial.silly.lua.SillyAPI;
 import dev.celestial.silly.not_a_mixin.AvatarAccessor;
 import dev.celestial.silly.not_a_mixin.EventsAccessor;

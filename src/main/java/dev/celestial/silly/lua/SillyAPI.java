@@ -1,6 +1,6 @@
 package dev.celestial.silly.lua;
 
-import dev.celestial.silly.Overridable;
+import dev.celestial.silly.helper.Overridable;
 import dev.celestial.silly.SillyEnums;
 import dev.celestial.silly.SillyPlugin;
 import dev.celestial.silly.SillyUtil;
@@ -29,7 +29,6 @@ import org.figuramc.figura.config.Configs;
 import org.figuramc.figura.gui.widgets.lists.AvatarList;
 import org.figuramc.figura.lua.FiguraLuaRuntime;
 import org.figuramc.figura.lua.LuaNotNil;
-import org.figuramc.figura.lua.LuaTypeManager;
 import org.figuramc.figura.lua.LuaWhitelist;
 import org.figuramc.figura.lua.api.ping.PingArg;
 import org.figuramc.figura.lua.api.ping.PingFunction;
@@ -228,7 +227,10 @@ public class SillyAPI {
             this.friction.setValue(null);
             this.frictionValue.setValue(null);
         } else {
-            avatar.luaRuntime.typeManager.javaToLua(friction).arg1().checkboolean();
+            LuaValue val = avatar.luaRuntime.typeManager.javaToLua(friction).arg1();
+            if (val.isboolean())
+                return setFriction(val.checkboolean());
+            setFriction(val.checknumber().tofloat());
         }
         return this;
     }

@@ -15,7 +15,7 @@ import java.util.UUID;
 public class DevAPI {
     public Avatar owner;
     public FiguraLuaRuntime runtime;
-    public static boolean caller_stack_corruption_warn = false;
+    public static boolean throw_on_bad_call_stack = true;
     public DevAPI(FiguraLuaRuntime runtime) {
         this.runtime = runtime;
         this.owner = runtime.owner;
@@ -27,7 +27,7 @@ public class DevAPI {
     public LuaValue get_caller_stack() {
         LuaTable ret = new LuaTable();
         int index = 1;
-        for (Pair<UUID, String> stackValue : BackportsAPI.callerStack) {
+        for (Pair<UUID, String> stackValue : BackportsAPI.callerStack.get()) {
             LuaTable value = new LuaTable();
             value.set(1, stackValue.getLeft().toString());
             value.set(2, stackValue.getRight());
@@ -39,7 +39,18 @@ public class DevAPI {
     }
 
     @LuaWhitelist
-    public void set_caller_stack_corruption_to_warn_and_reset() {
-        caller_stack_corruption_warn = true;
+    public LuaTable get_stack_ops() {
+        LuaTable ret = new LuaTable();
+        int i = 1;
+        for (String op : BackportsAPI.ops) {
+            ret.set(i, op);
+            i++;
+        }
+        return ret;
+    }
+
+    @LuaWhitelist
+    public void disable_throw_on_bad_call_stack() {
+        throw_on_bad_call_stack = false;
     }
 }

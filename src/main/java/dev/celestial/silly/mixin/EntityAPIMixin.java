@@ -2,7 +2,7 @@ package dev.celestial.silly.mixin;
 
 import com.llamalad7.mixinextras.lib.apache.commons.tuple.Pair;
 import dev.celestial.silly.lua.BackportsAPI;
-import dev.celestial.silly.CallerContext;
+import dev.celestial.silly.helper.CallerContext;
 import org.figuramc.figura.lua.api.entity.EntityAPI;
 import org.jetbrains.annotations.NotNull;
 import org.luaj.vm2.LuaFunction;
@@ -30,7 +30,7 @@ public class EntityAPIMixin {
     @Inject(method = "getVariable", at = @At(value = "RETURN"), cancellable = true)
     public void getVariableMixin(String key, CallbackInfoReturnable<LuaValue> cir) {
         LuaValue value = cir.getReturnValue();
-        Pair<UUID, String> caller = BackportsAPI.callerStack.peek();
+        Pair<UUID, String> caller = BackportsAPI.callerStack.get().peek();
         if (caller == null) throw new IllegalStateException("Caller stack peek gave null (?!?!?!?)");
         if (value.istable())
             cir.setReturnValue(silly$transformTable(value.checktable(), caller.getLeft()));
